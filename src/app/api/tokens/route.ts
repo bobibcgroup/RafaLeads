@@ -43,10 +43,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the current domain from the request
-    const protocol = request.headers.get('x-forwarded-proto') || 'https';
-    const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
-    const baseUrl = `${protocol}://${host}`;
+    // Use the correct domain - Railway headers might not be set correctly
+    const baseUrl = 'https://rafaleads-production.up.railway.app';
     
     console.log('🔍 Request headers for token creation:');
     console.log('  x-forwarded-proto:', request.headers.get('x-forwarded-proto'));
@@ -78,10 +76,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clinicId = searchParams.get('clinic_id');
 
-    // Get the current domain from the request
-    const protocol = request.headers.get('x-forwarded-proto') || 'https';
-    const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
-    const baseUrl = `${protocol}://${host}`;
+    // Use the correct domain - Railway headers might not be set correctly
+    const baseUrl = 'https://rafaleads-production.up.railway.app';
     
     console.log('🔍 Request headers for token listing:');
     console.log('  x-forwarded-proto:', request.headers.get('x-forwarded-proto'));
