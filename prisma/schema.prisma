@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id          String   @id @default(cuid())
+  clinicId    String   @unique
+  name        String
+  city        String
+  whatsapp    String
+  phone       String
+  email       String
+  website     String?
+  address     String
+  hours       String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  leads       Lead[]
+  tokens      DashboardToken[]
+
+  @@map("clinics")
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique
+  clinicId    String
+  lang        String   @default("EN")
+  name        String
+  phone       String
+  treatmentId String
+  message     String
+  notes       String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clinic      Clinic   @relation(fields: [clinicId], references: [clinicId])
+
+  @@map("leads")
+}
+
+model DashboardToken {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  clinicId    String
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  active      Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clinic      Clinic   @relation(fields: [clinicId], references: [clinicId])
+
+  @@map("dashboard_tokens")
+}
+
+model WebhookLog {
+  id          String   @id @default(cuid())
+  source      String   // 'n8n', 'google_sheets', etc.
+  event       String   // 'lead_created', 'lead_updated', etc.
+  data        String   // JSON payload
+  status      String   // 'success', 'error', 'pending'
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@map("webhook_logs")
+}
