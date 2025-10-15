@@ -46,7 +46,9 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
 
-        console.log('🔍 Validating token:', token);
+        console.log('🔍 Dashboard useEffect triggered');
+        console.log('🔍 Token from params:', token);
+        console.log('🔍 Current URL:', window.location.href);
 
         // Step 1: Validate token
         const tokenResponse = await fetch('/api/validate-token', {
@@ -106,6 +108,10 @@ export default function DashboardPage() {
 
     if (token) {
       fetchDashboardData();
+    } else {
+      console.log('❌ No token provided');
+      setError('No token provided in URL');
+      setLoading(false);
     }
   }, [token]);
 
