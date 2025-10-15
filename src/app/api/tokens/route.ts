@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the current domain from the request
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
+    const baseUrl = `${protocol}://${host}`;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -50,7 +55,7 @@ export async function POST(request: NextRequest) {
         clinic_id: body.clinic_id,
         clinic_name: clinic.name,
         expires_at: tokenData.expires_at,
-        dashboard_url: `${process.env.NEXTAUTH_URL || 'https://rafaleads-production.up.railway.app'}/dashboard/${token}`,
+        dashboard_url: `${baseUrl}/dashboard/${token}`,
       },
       message: 'Token created successfully',
     });
@@ -67,6 +72,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const clinicId = searchParams.get('clinic_id');
+
+    // Get the current domain from the request
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
+    const baseUrl = `${protocol}://${host}`;
 
     const { prisma } = await import('@/lib/database');
     
@@ -92,7 +102,7 @@ export async function GET(request: NextRequest) {
       created_at: token.createdAt.toISOString(),
       expires_at: token.expiresAt.toISOString(),
       active: token.active,
-      dashboard_url: `${process.env.NEXTAUTH_URL || 'https://rafaleads-production.up.railway.app'}/dashboard/${token.token}`,
+      dashboard_url: `${baseUrl}/dashboard/${token.token}`,
     }));
 
     return NextResponse.json({
