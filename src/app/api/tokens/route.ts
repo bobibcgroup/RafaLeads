@@ -108,3 +108,34 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    if (!body.token) {
+      return NextResponse.json(
+        { success: false, error: 'Token is required' },
+        { status: 400 }
+      );
+    }
+
+    const { prisma } = await import('@/lib/database');
+    
+    // Delete the token
+    await prisma.dashboardToken.delete({
+      where: { token: body.token },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Token deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting token:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

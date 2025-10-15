@@ -30,6 +30,7 @@ export default function AdminPanel() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingToken, setCreatingToken] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -64,17 +65,26 @@ export default function AdminPanel() {
       });
 
       const data = await response.json();
+      console.log('Token creation response:', data);
+      
       if (data.success) {
-        fetchData();
+        // Refresh data first
+        await fetchData();
+        
         // Copy token to clipboard
-        await navigator.clipboard.writeText(data.data.token);
-        alert(`Token created and copied to clipboard!\nDashboard URL: ${data.data.dashboard_url}`);
+        try {
+          await navigator.clipboard.writeText(data.data.token);
+          alert(`✅ Token created successfully!\n\nToken: ${data.data.token}\nDashboard URL: ${data.data.dashboard_url}\n\nToken copied to clipboard!`);
+        } catch (clipboardError) {
+          alert(`✅ Token created successfully!\n\nToken: ${data.data.token}\nDashboard URL: ${data.data.dashboard_url}`);
+        }
       } else {
-        alert('Error: ' + data.error);
+        console.error('Token creation failed:', data);
+        alert(`❌ Error creating token: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error creating token:', error);
-      alert('Failed to create token');
+      alert(`❌ Failed to create token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setCreatingToken(null);
     }
@@ -91,6 +101,54 @@ export default function AdminPanel() {
 
   const getTokenForClinic = (clinicId: string) => {
     return tokens.find(token => token.clinic_id === clinicId);
+  };
+
+  const syncClinics = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/sync/clinics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Clinics synced successfully!');
+        fetchData(); // Refresh the data
+      } else {
+        alert('Sync failed: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error syncing clinics:', error);
+      alert('Failed to sync clinics');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const deleteToken = async (token: string) => {
+    if (!confirm('Are you sure you want to delete this token? This will revoke dashboard access.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tokens', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Token deleted successfully!');
+        fetchData(); // Refresh the data
+      } else {
+        alert('Delete failed: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting token:', error);
+      alert('Failed to delete token');
+    }
   };
 
   if (loading) {
@@ -114,10 +172,31 @@ export default function AdminPanel() {
       {/* Clinics and Tokens */}
       <Card>
         <CardHeader>
-          <CardTitle>Clinics & Dashboard Access ({clinics.length})</CardTitle>
-          <CardDescription>
-            Clinics are automatically synced from your Google Sheet. Generate dashboard tokens to give access.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Clinics & Dashboard Access ({clinics.length})</CardTitle>
+              <CardDescription>
+                Sync clinics from your webhook and generate dashboard tokens.
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={syncClinics} 
+              disabled={syncing}
+              variant="outline"
+            >
+              {syncing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sync Clinics
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -186,9 +265,18 @@ export default function AdminPanel() {
                         </div>
                       </div>
 
-                      <div className="text-sm text-gray-500">
-                        <p>Created: {new Date(token.created_at).toLocaleDateString()}</p>
-                        <p>Expires: {new Date(token.expires_at).toLocaleDateString()}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                          <p>Created: {new Date(token.created_at).toLocaleDateString()}</p>
+                          <p>Expires: {new Date(token.expires_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteToken(token.token)}
+                        >
+                          Delete Token
+                        </Button>
                       </div>
                     </div>
                   ) : (
