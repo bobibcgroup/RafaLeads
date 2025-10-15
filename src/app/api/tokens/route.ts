@@ -47,6 +47,11 @@ export async function POST(request: NextRequest) {
     const protocol = request.headers.get('x-forwarded-proto') || 'https';
     const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
     const baseUrl = `${protocol}://${host}`;
+    
+    console.log('🔍 Request headers for token creation:');
+    console.log('  x-forwarded-proto:', request.headers.get('x-forwarded-proto'));
+    console.log('  host:', request.headers.get('host'));
+    console.log('  baseUrl:', baseUrl);
 
     return NextResponse.json({
       success: true,
@@ -77,6 +82,11 @@ export async function GET(request: NextRequest) {
     const protocol = request.headers.get('x-forwarded-proto') || 'https';
     const host = request.headers.get('host') || 'rafaleads-production.up.railway.app';
     const baseUrl = `${protocol}://${host}`;
+    
+    console.log('🔍 Request headers for token listing:');
+    console.log('  x-forwarded-proto:', request.headers.get('x-forwarded-proto'));
+    console.log('  host:', request.headers.get('host'));
+    console.log('  baseUrl:', baseUrl);
 
     const { prisma } = await import('@/lib/database');
     
