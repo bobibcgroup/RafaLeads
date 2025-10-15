@@ -24,10 +24,14 @@ try {
   execSync('npx prisma generate', { stdio: 'inherit' });
   console.log('✅ Prisma client generated\n');
 
-  // Push database schema
-  console.log('🗄️  Pushing database schema...');
-  execSync('npx prisma db push', { stdio: 'inherit' });
-  console.log('✅ Database schema pushed\n');
+  // Push database schema (only if DATABASE_URL is available)
+  if (process.env.DATABASE_URL) {
+    console.log('🗄️  Pushing database schema...');
+    execSync('npx prisma db push', { stdio: 'inherit' });
+    console.log('✅ Database schema pushed\n');
+  } else {
+    console.log('⚠️  Skipping database schema push - DATABASE_URL not available during build\n');
+  }
 
   // Seed database if in production and no data exists
   if (isProduction) {
