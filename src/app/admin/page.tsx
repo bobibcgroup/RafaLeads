@@ -105,9 +105,9 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">RafaLeads Dashboard Access</h1>
+        <h1 className="text-3xl font-bold mb-2">Dashboard Access Management</h1>
         <p className="text-gray-600">Manage dashboard access tokens for each clinic</p>
       </div>
 
