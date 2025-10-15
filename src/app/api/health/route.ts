@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: 'RafaLeads API is healthy',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-  });
+  try {
+    // Simple health check
+    return NextResponse.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
+  }
 }

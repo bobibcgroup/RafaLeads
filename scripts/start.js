@@ -7,16 +7,14 @@
 
 const { spawn } = require('child_process');
 
-// Debug: Log all available environment variables
-console.log('🔍 Environment variables:');
-console.log('PORT:', process.env.PORT);
-console.log('RAILWAY_STATIC_PORT:', process.env.RAILWAY_STATIC_PORT);
-console.log('RAILWAY_PUBLIC_DOMAIN:', process.env.RAILWAY_PUBLIC_DOMAIN);
-
 // Get port from environment variable or default to 3000
 const port = process.env.PORT || process.env.RAILWAY_STATIC_PORT || 3000;
 
 console.log(`🚀 Starting RafaLeads on port ${port}`);
+console.log('🔍 Environment check:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- PORT:', port);
+console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
 
 // Start Next.js with the correct port
 const nextProcess = spawn('npx', ['next', 'start', '-p', port.toString()], {
