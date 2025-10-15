@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Copy, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface Clinic {
   clinicId: string;
@@ -30,18 +29,7 @@ export default function AdminPanel() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newClinic, setNewClinic] = useState({
-    clinic_id: '',
-    name: '',
-    city: '',
-    whatsapp: '',
-    phone: '',
-    email: '',
-    website: '',
-    address: '',
-    hours: '',
-    notes: '',
-  });
+  const [creatingToken, setCreatingToken] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -66,39 +54,8 @@ export default function AdminPanel() {
     }
   };
 
-  const createClinic = async () => {
-    try {
-      const response = await fetch('/api/clinics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newClinic),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setNewClinic({
-          clinic_id: '',
-          name: '',
-          city: '',
-          whatsapp: '',
-          phone: '',
-          email: '',
-          website: '',
-          address: '',
-          hours: '',
-          notes: '',
-        });
-        fetchData();
-      } else {
-        alert('Error: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error creating clinic:', error);
-      alert('Failed to create clinic');
-    }
-  };
-
   const createToken = async (clinicId: string) => {
+    setCreatingToken(clinicId);
     try {
       const response = await fetch('/api/tokens', {
         method: 'POST',
@@ -109,186 +66,176 @@ export default function AdminPanel() {
       const data = await response.json();
       if (data.success) {
         fetchData();
-        alert(`Token created: ${data.data.token}\nDashboard URL: ${data.data.dashboard_url}`);
+        // Copy token to clipboard
+        await navigator.clipboard.writeText(data.data.token);
+        alert(`Token created and copied to clipboard!\nDashboard URL: ${data.data.dashboard_url}`);
       } else {
         alert('Error: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating token:', error);
       alert('Failed to create token');
+    } finally {
+      setCreatingToken(null);
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+  };
+
+  const getTokenForClinic = (clinicId: string) => {
+    return tokens.find(token => token.clinic_id === clinicId);
+  };
+
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading admin panel...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">RafaLeads Admin Panel</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">RafaLeads Dashboard Access</h1>
+        <p className="text-gray-600">Manage dashboard access tokens for each clinic</p>
+      </div>
 
-      {/* Create New Clinic */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Create New Clinic</CardTitle>
-          <CardDescription>Add a new clinic to the system</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="clinic_id">Clinic ID</Label>
-              <Input
-                id="clinic_id"
-                value={newClinic.clinic_id}
-                onChange={(e) => setNewClinic({ ...newClinic, clinic_id: e.target.value })}
-                placeholder="e.g., atos"
-              />
-            </div>
-            <div>
-              <Label htmlFor="name">Clinic Name</Label>
-              <Input
-                id="name"
-                value={newClinic.name}
-                onChange={(e) => setNewClinic({ ...newClinic, name: e.target.value })}
-                placeholder="e.g., Atos Aesthetic Clinic"
-              />
-            </div>
-            <div>
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={newClinic.city}
-                onChange={(e) => setNewClinic({ ...newClinic, city: e.target.value })}
-                placeholder="e.g., Dubai"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newClinic.email}
-                onChange={(e) => setNewClinic({ ...newClinic, email: e.target.value })}
-                placeholder="e.g., info@atosclinic.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={newClinic.phone}
-                onChange={(e) => setNewClinic({ ...newClinic, phone: e.target.value })}
-                placeholder="e.g., +971501234567"
-              />
-            </div>
-            <div>
-              <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                value={newClinic.whatsapp}
-                onChange={(e) => setNewClinic({ ...newClinic, whatsapp: e.target.value })}
-                placeholder="e.g., +971501234567"
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              value={newClinic.address}
-              onChange={(e) => setNewClinic({ ...newClinic, address: e.target.value })}
-              placeholder="e.g., Dubai Marina, UAE"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="hours">Hours</Label>
-              <Input
-                id="hours"
-                value={newClinic.hours}
-                onChange={(e) => setNewClinic({ ...newClinic, hours: e.target.value })}
-                placeholder="e.g., Sun-Thu 9AM-9PM"
-              />
-            </div>
-            <div>
-              <Label htmlFor="website">Website (optional)</Label>
-              <Input
-                id="website"
-                value={newClinic.website}
-                onChange={(e) => setNewClinic({ ...newClinic, website: e.target.value })}
-                placeholder="e.g., https://atosclinic.com"
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Input
-              id="notes"
-              value={newClinic.notes}
-              onChange={(e) => setNewClinic({ ...newClinic, notes: e.target.value })}
-              placeholder="Additional notes about the clinic"
-            />
-          </div>
-          <Button onClick={createClinic} className="w-full">
-            Create Clinic
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Clinics List */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Clinics ({clinics.length})</CardTitle>
-          <CardDescription>Manage existing clinics and create dashboard tokens</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {clinics.map((clinic) => (
-              <div key={clinic.clinicId} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-semibold">{clinic.name}</h3>
-                  <p className="text-sm text-gray-600">{clinic.city} • {clinic.email}</p>
-                  <p className="text-xs text-gray-500">ID: {clinic.clinicId}</p>
-                </div>
-                <Button onClick={() => createToken(clinic.clinicId)}>
-                  Create Token
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tokens List */}
+      {/* Clinics and Tokens */}
       <Card>
         <CardHeader>
-          <CardTitle>Dashboard Tokens ({tokens.length})</CardTitle>
-          <CardDescription>Active dashboard access tokens</CardDescription>
+          <CardTitle>Clinics & Dashboard Access ({clinics.length})</CardTitle>
+          <CardDescription>
+            Clinics are automatically synced from your Google Sheet. Generate dashboard tokens to give access.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {tokens.map((token) => (
-              <div key={token.token} className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">{token.clinic_name}</h3>
-                  <Badge variant={token.active ? "default" : "secondary"}>
-                    {token.active ? "Active" : "Inactive"}
-                  </Badge>
+          <div className="space-y-6">
+            {clinics.map((clinic) => {
+              const token = getTokenForClinic(clinic.clinicId);
+              return (
+                <div key={clinic.clinicId} className="p-6 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold mb-1">{clinic.name}</h3>
+                      <p className="text-gray-600 mb-2">{clinic.city} • {clinic.email}</p>
+                      <p className="text-sm text-gray-500">ID: {clinic.clinicId}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {token ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          Token Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">No Token</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {token ? (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-white dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Dashboard Token:</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(token.token)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy Token
+                          </Button>
+                        </div>
+                        <code className="text-xs bg-gray-100 dark:bg-gray-600 p-2 rounded block break-all">
+                          {token.token}
+                        </code>
+                      </div>
+                      
+                      <div className="p-4 bg-white dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Dashboard URL:</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(token.dashboard_url)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy URL
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-gray-100 dark:bg-gray-600 p-2 rounded flex-1 break-all">
+                            {token.dashboard_url}
+                          </code>
+                          <Button
+                            size="sm"
+                            onClick={() => window.open(token.dashboard_url, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="text-sm text-gray-500">
+                        <p>Created: {new Date(token.created_at).toLocaleDateString()}</p>
+                        <p>Expires: {new Date(token.expires_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-600 mb-4">No dashboard access token generated yet</p>
+                      <Button
+                        onClick={() => createToken(clinic.clinicId)}
+                        disabled={creatingToken === clinic.clinicId}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {creatingToken === clinic.clinicId ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          'Generate Dashboard Token'
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">Token: {token.token}</p>
-                <p className="text-sm text-gray-500 mb-2">
-                  Expires: {new Date(token.expires_at).toLocaleDateString()}
-                </p>
-                <a
-                  href={token.dashboard_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline text-sm"
-                >
-                  Open Dashboard →
-                </a>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Manage the system</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Button onClick={fetchData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Data
+            </Button>
+            <Button 
+              onClick={() => window.open('/api/sync/clinics', '_blank')} 
+              variant="outline"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Check Sync Status
+            </Button>
           </div>
         </CardContent>
       </Card>
