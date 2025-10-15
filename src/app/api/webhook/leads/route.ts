@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify webhook secret (optional but recommended)
     const secret = request.headers.get('x-webhook-secret');
-    const expectedSecret = process.env.WEBHOOK_SECRET;
+    const expectedSecret = process.env.N8N_WEBHOOK_SECRET;
     
     if (expectedSecret && secret !== expectedSecret) {
       return NextResponse.json(

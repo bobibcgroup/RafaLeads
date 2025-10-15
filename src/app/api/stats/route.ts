@@ -6,18 +6,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clinicId = searchParams.get('clinic_id');
 
-    if (!clinicId) {
-      return NextResponse.json(
-        { success: false, error: 'Clinic ID is required' },
-        { status: 400 }
-      );
-    }
+    // If no clinic_id provided, get stats for the demo clinic
+    const targetClinicId = clinicId || 'clinic-1';
 
-    const stats = await databaseService.getStats(clinicId);
+    const stats = await databaseService.getStats(targetClinicId);
 
     return NextResponse.json({
       success: true,
       data: stats,
+      message: clinicId ? `Stats for clinic ${clinicId}` : 'Stats for demo clinic (clinic-1)',
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
