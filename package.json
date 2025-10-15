@@ -12,7 +12,8 @@
     "db:seed": "node scripts/seed-database.js",
     "db:studio": "prisma studio",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
-    "postinstall": "prisma generate"
+    "deploy:setup": "node scripts/deploy-setup.js",
+    "postinstall": "prisma generate && npm run deploy:setup"
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
