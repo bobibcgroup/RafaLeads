@@ -70,33 +70,74 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const clinic = await databaseService.createClinic({
-      clinic_id: body.clinic_id,
-      name: body.name,
-      city: body.city,
-      whatsapp: body.whatsapp,
-      phone: body.phone,
-      email: body.email,
-      website: body.website || null,
-      address: body.address,
-      hours: body.hours,
-      notes: body.notes || null,
-    });
+    // Check if clinic already exists
+    const existingClinic = await databaseService.getClinicById(body.clinic_id);
+    
+    if (existingClinic) {
+      // Update existing clinic
+      const { prisma } = await import('@/lib/database');
+      const updatedClinic = await prisma.clinic.update({
+        where: { clinicId: body.clinic_id },
+        data: {
+          name: body.name,
+          city: body.city,
+          whatsapp: body.whatsapp,
+          phone: body.phone,
+          email: body.email,
+          website: body.website || null,
+          address: body.address,
+          hours: body.hours,
+          notes: body.notes || null,
+          updatedAt: new Date(),
+        },
+      });
 
-    if (!clinic) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to create clinic' },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: true,
+        data: {
+          clinic_id: updatedClinic.clinicId,
+          name: updatedClinic.name,
+          city: updatedClinic.city,
+          whatsapp: updatedClinic.whatsapp,
+          phone: updatedClinic.phone,
+          email: updatedClinic.email,
+          website: updatedClinic.website,
+          address: updatedClinic.address,
+          hours: updatedClinic.hours,
+          notes: updatedClinic.notes,
+        },
+        message: 'Clinic updated successfully',
+      });
+    } else {
+      // Create new clinic
+      const clinic = await databaseService.createClinic({
+        clinic_id: body.clinic_id,
+        name: body.name,
+        city: body.city,
+        whatsapp: body.whatsapp,
+        phone: body.phone,
+        email: body.email,
+        website: body.website || null,
+        address: body.address,
+        hours: body.hours,
+        notes: body.notes || null,
+      });
+
+      if (!clinic) {
+        return NextResponse.json(
+          { success: false, error: 'Failed to create clinic' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: clinic,
+        message: 'Clinic created successfully',
+      });
     }
-
-    return NextResponse.json({
-      success: true,
-      data: clinic,
-      message: 'Clinic created successfully',
-    });
   } catch (error) {
-    console.error('Error creating clinic:', error);
+    console.error('Error creating/updating clinic:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

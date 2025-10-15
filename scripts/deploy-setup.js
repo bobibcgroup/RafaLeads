@@ -45,6 +45,18 @@ try {
     }
   }
 
+  // Start clinic sync service in production
+  if (isProduction) {
+    console.log('🔄 Starting clinic sync service...');
+    try {
+      const { syncService } = await import('../src/lib/syncService');
+      await syncService.startSync();
+      console.log('✅ Clinic sync service started');
+    } catch (error) {
+      console.log('⚠️ Failed to start sync service (this is okay for now):', error.message);
+    }
+  }
+
   console.log('🎉 Deployment setup complete!');
   console.log('Your app should now be ready to run on Railway.');
 
