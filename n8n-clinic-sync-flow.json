@@ -1,0 +1,369 @@
+{
+  "name": "RafaLeads - Clinic Data Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "value": "0 * * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://rafaleads-production.up.railway.app/api/clinics",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-clinics",
+      "name": "Fetch Clinics from RafaLeads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-success",
+      "name": "Check if Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "clinic-data",
+              "name": "clinic_data",
+              "value": "={{ $json.data }}",
+              "type": "object"
+            },
+            {
+              "id": "count",
+              "name": "count",
+              "value": "={{ $json.count }}",
+              "type": "number"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now }}",
+              "type": "dateTime"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-data",
+      "name": "Prepare Clinic Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "your-google-sheet-id",
+          "mode": "id"
+        },
+        "sheetName": "clinics",
+        "columnToMatchOn": "clinic_id",
+        "valuesToSend": "defineBelow",
+        "values": {
+          "values": [
+            {
+              "column": "clinic_id",
+              "value": "={{ $item.json.clinicId }}"
+            },
+            {
+              "column": "name",
+              "value": "={{ $item.json.name }}"
+            },
+            {
+              "column": "city",
+              "value": "={{ $item.json.city }}"
+            },
+            {
+              "column": "email",
+              "value": "={{ $item.json.email }}"
+            },
+            {
+              "column": "phone",
+              "value": "={{ $item.json.phone }}"
+            },
+            {
+              "column": "whatsapp",
+              "value": "={{ $item.json.whatsapp }}"
+            },
+            {
+              "column": "website",
+              "value": "={{ $item.json.website }}"
+            },
+            {
+              "column": "address",
+              "value": "={{ $item.json.address }}"
+            },
+            {
+              "column": "hours",
+              "value": "={{ $item.json.hours }}"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $item.json.notes }}"
+            },
+            {
+              "column": "created_at",
+              "value": "={{ $item.json.createdAt }}"
+            },
+            {
+              "column": "updated_at",
+              "value": "={{ $item.json.updatedAt }}"
+            },
+            {
+              "column": "last_sync",
+              "value": "={{ $('Prepare Clinic Data').item.json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "update-google-sheets",
+      "name": "Update Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error-message",
+              "name": "error_message",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $now }}",
+              "type": "dateTime"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-error",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "your-google-sheet-id",
+          "mode": "id"
+        },
+        "sheetName": "sync_logs",
+        "valuesToSend": "defineBelow",
+        "values": {
+          "values": [
+            {
+              "column": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "column": "status",
+              "value": "error"
+            },
+            {
+              "column": "error_message",
+              "value": "={{ $json.error_message }}"
+            },
+            {
+              "column": "clinic_count",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "id": "log-error-to-sheets",
+      "name": "Log Error to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "your-google-sheet-id",
+          "mode": "id"
+        },
+        "sheetName": "sync_logs",
+        "valuesToSend": "defineBelow",
+        "values": {
+          "values": [
+            {
+              "column": "timestamp",
+              "value": "={{ $('Prepare Clinic Data').item.json.timestamp }}"
+            },
+            {
+              "column": "status",
+              "value": "success"
+            },
+            {
+              "column": "error_message",
+              "value": ""
+            },
+            {
+              "column": "clinic_count",
+              "value": "={{ $('Prepare Clinic Data').item.json.count }}"
+            }
+          ]
+        }
+      },
+      "id": "log-success-to-sheets",
+      "name": "Log Success to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    }
+  ],
+  "connections": {
+    "Every Minute": {
+      "main": [
+        [
+          {
+            "node": "Fetch Clinics from RafaLeads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Clinics from RafaLeads": {
+      "main": [
+        [
+          {
+            "node": "Check if Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Success": {
+      "main": [
+        [
+          {
+            "node": "Prepare Clinic Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Clinic Data": {
+      "main": [
+        [
+          {
+            "node": "Update Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Log Success to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "rafaleads-sync",
+      "name": "RafaLeads Sync"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
