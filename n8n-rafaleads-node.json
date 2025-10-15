@@ -1,0 +1,66 @@
+{
+  "name": "Send to RafaLeads Dashboard",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.1,
+  "position": [0, 0],
+  "parameters": {
+    "url": "https://rafaleads-production.up.railway.app/api/webhook/leads",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "x-webhook-secret",
+          "value": "19a007df8e3a89e23cd61bd43bb32d607a70babbac368b8c62083534a0d12118"
+        }
+      ]
+    },
+    "sendBody": true,
+    "bodyParameters": {
+      "parameters": [
+        {
+          "name": "session_id",
+          "value": "={{ $json.session_id }}"
+        },
+        {
+          "name": "clinic_id",
+          "value": "={{ $json.clinic_id }}"
+        },
+        {
+          "name": "lang",
+          "value": "={{ $json.lang || 'EN' }}"
+        },
+        {
+          "name": "name",
+          "value": "={{ $json.name }}"
+        },
+        {
+          "name": "phone",
+          "value": "={{ $json.phone }}"
+        },
+        {
+          "name": "treatment_id",
+          "value": "={{ $json.treatment_id }}"
+        },
+        {
+          "name": "message",
+          "value": "={{ $json.message }}"
+        },
+        {
+          "name": "notes",
+          "value": "={{ $json.notes || 'Captured via AI consultant' }}"
+        }
+      ]
+    },
+    "options": {
+      "timeout": 10000,
+      "retry": {
+        "enabled": true,
+        "maxRetries": 3
+      }
+    }
+  }
+}
