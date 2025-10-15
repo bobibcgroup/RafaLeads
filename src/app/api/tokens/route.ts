@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Request headers for token creation:');
     console.log('  x-forwarded-proto:', request.headers.get('x-forwarded-proto'));
     console.log('  host:', request.headers.get('host'));
+    console.log('  NEXTAUTH_URL env var:', process.env.NEXTAUTH_URL);
     console.log('  baseUrl:', baseUrl);
+    console.log('  Final dashboard URL will be:', `${baseUrl}/dashboard/${token}`);
 
     return NextResponse.json({
       success: true,
