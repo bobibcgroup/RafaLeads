@@ -5,9 +5,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const clinicId = searchParams.get('clinic_id');
-    const startDate = searchParams.get('start_date');
-    const endDate = searchParams.get('end_date');
-    const treatment = searchParams.get('treatment');
 
     if (!clinicId) {
       return NextResponse.json(
@@ -16,21 +13,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const filters = {
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      treatment: treatment ? treatment.split(',') : undefined,
-    };
+    console.log('🔍 Fetching leads for clinic:', clinicId);
 
-    const leads = await databaseService.getLeads(clinicId, filters);
+    const leads = await databaseService.getLeads(clinicId);
+
+    console.log('📋 Found leads:', leads.length);
 
     return NextResponse.json({
       success: true,
       data: {
         leads,
-        total: leads.length,
-        page: 1,
-        limit: 1000,
+        count: leads.length,
       },
     });
   } catch (error) {

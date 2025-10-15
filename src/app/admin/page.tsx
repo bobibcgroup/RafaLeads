@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, RefreshCw } from 'lucide-react';
+import { Copy, ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
 
 interface Clinic {
   clinicId: string;
@@ -38,6 +38,8 @@ export default function AdminPanel() {
 
   const fetchData = async () => {
     try {
+      console.log('🔄 Fetching data...');
+      
       const [clinicsRes, tokensRes] = await Promise.all([
         fetch('/api/clinics'),
         fetch('/api/tokens'),
@@ -45,6 +47,9 @@ export default function AdminPanel() {
 
       const clinicsData = await clinicsRes.json();
       const tokensData = await tokensRes.json();
+
+      console.log('📊 Clinics data:', clinicsData);
+      console.log('🔑 Tokens data:', tokensData);
 
       if (clinicsData.success) setClinics(clinicsData.data);
       if (tokensData.success) setTokens(tokensData.data);
@@ -58,6 +63,8 @@ export default function AdminPanel() {
   const createToken = async (clinicId: string) => {
     setCreatingToken(clinicId);
     try {
+      console.log('🔑 Creating token for clinic:', clinicId);
+      
       const response = await fetch('/api/tokens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,42 +72,49 @@ export default function AdminPanel() {
       });
 
       const data = await response.json();
-      console.log('Token creation response:', data);
+      console.log('🔑 Token creation response:', data);
       
       if (data.success) {
-        // Refresh data first
         await fetchData();
         
-        // Copy token to clipboard
         try {
           await navigator.clipboard.writeText(data.data.token);
-          alert(`✅ Token created successfully!\n\nToken: ${data.data.token}\nDashboard URL: ${data.data.dashboard_url}\n\nToken copied to clipboard!`);
+          alert(`✅ Token created!\n\nToken: ${data.data.token}\nDashboard: ${data.data.dashboard_url}\n\nCopied to clipboard!`);
         } catch (clipboardError) {
-          alert(`✅ Token created successfully!\n\nToken: ${data.data.token}\nDashboard URL: ${data.data.dashboard_url}`);
+          alert(`✅ Token created!\n\nToken: ${data.data.token}\nDashboard: ${data.data.dashboard_url}`);
         }
       } else {
-        console.error('Token creation failed:', data);
-        alert(`❌ Error creating token: ${data.error || 'Unknown error'}`);
+        alert(`❌ Error: ${data.error}`);
       }
     } catch (error) {
       console.error('Error creating token:', error);
-      alert(`❌ Failed to create token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setCreatingToken(null);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      alert('Copied to clipboard!');
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
-  };
+  const deleteToken = async (token: string) => {
+    if (!confirm('Delete this token? This will revoke dashboard access.')) return;
 
-  const getTokenForClinic = (clinicId: string) => {
-    return tokens.find(token => token.clinic_id === clinicId);
+    try {
+      const response = await fetch('/api/tokens', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Token deleted!');
+        fetchData();
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting token:', error);
+      alert('❌ Failed to delete token');
+    }
   };
 
   const syncClinics = async () => {
@@ -113,41 +127,25 @@ export default function AdminPanel() {
 
       const data = await response.json();
       if (data.success) {
-        alert('Clinics synced successfully!');
-        fetchData(); // Refresh the data
+        alert('✅ Clinics synced!');
+        fetchData();
       } else {
-        alert('Sync failed: ' + data.error);
+        alert(`❌ Sync failed: ${data.error}`);
       }
     } catch (error) {
-      console.error('Error syncing clinics:', error);
-      alert('Failed to sync clinics');
+      console.error('Error syncing:', error);
+      alert('❌ Sync failed');
     } finally {
       setSyncing(false);
     }
   };
 
-  const deleteToken = async (token: string) => {
-    if (!confirm('Are you sure you want to delete this token? This will revoke dashboard access.')) {
-      return;
-    }
-
+  const copyToClipboard = async (text: string) => {
     try {
-      const response = await fetch('/api/tokens', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert('Token deleted successfully!');
-        fetchData(); // Refresh the data
-      } else {
-        alert('Delete failed: ' + data.error);
-      }
+      await navigator.clipboard.writeText(text);
+      alert('✅ Copied to clipboard!');
     } catch (error) {
-      console.error('Error deleting token:', error);
-      alert('Failed to delete token');
+      console.error('Failed to copy:', error);
     }
   };
 
@@ -163,45 +161,53 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Dashboard Access Management</h1>
-        <p className="text-gray-600">Manage dashboard access tokens for each clinic</p>
+        <h1 className="text-3xl font-bold mb-2">RafaLeads Admin Panel</h1>
+        <p className="text-gray-600">Manage clinics and dashboard access tokens</p>
       </div>
+
+      {/* Sync Button */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Database Sync</CardTitle>
+          <CardDescription>Sync clinics from your webhook</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={syncClinics} disabled={syncing}>
+            {syncing ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Sync Clinics from Webhook
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Clinics and Tokens */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Clinics & Dashboard Access ({clinics.length})</CardTitle>
-              <CardDescription>
-                Sync clinics from your webhook and generate dashboard tokens.
-              </CardDescription>
+              <CardTitle>Clinics & Tokens ({clinics.length} clinics, {tokens.length} tokens)</CardTitle>
+              <CardDescription>Manage dashboard access for each clinic</CardDescription>
             </div>
-            <Button 
-              onClick={syncClinics} 
-              disabled={syncing}
-              variant="outline"
-            >
-              {syncing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Sync Clinics
-                </>
-              )}
+            <Button onClick={fetchData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             {clinics.map((clinic) => {
-              const token = getTokenForClinic(clinic.clinicId);
+              const token = tokens.find(t => t.clinic_id === clinic.clinicId);
               return (
                 <div key={clinic.clinicId} className="p-6 border rounded-lg bg-gray-50 dark:bg-gray-800">
                   <div className="flex items-start justify-between mb-4">
@@ -275,13 +281,14 @@ export default function AdminPanel() {
                           variant="destructive"
                           onClick={() => deleteToken(token.token)}
                         >
+                          <Trash2 className="h-4 w-4 mr-1" />
                           Delete Token
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <p className="text-gray-600 mb-4">No dashboard access token generated yet</p>
+                      <p className="text-gray-600 mb-4">No dashboard token generated yet</p>
                       <Button
                         onClick={() => createToken(clinic.clinicId)}
                         disabled={creatingToken === clinic.clinicId}
@@ -301,29 +308,6 @@ export default function AdminPanel() {
                 </div>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Manage the system</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button onClick={fetchData} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Data
-            </Button>
-            <Button 
-              onClick={() => window.open('/api/sync/clinics', '_blank')} 
-              variant="outline"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Check Sync Status
-            </Button>
           </div>
         </CardContent>
       </Card>
