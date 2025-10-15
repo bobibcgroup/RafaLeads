@@ -39,8 +39,16 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted || !token) return;
+
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
@@ -48,20 +56,25 @@ export default function DashboardPage() {
 
         console.log('🔍 Dashboard useEffect triggered');
         console.log('🔍 Token from params:', token);
-        console.log('🔍 Current URL:', window.location.href);
+        console.log('🔍 Current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
 
         // Step 1: Validate token
+        console.log('🔑 Validating token...');
         const tokenResponse = await fetch('/api/validate-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
 
+        if (!tokenResponse.ok) {
+          throw new Error(`Token validation failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+        }
+
         const tokenData = await tokenResponse.json();
         console.log('🔑 Token validation result:', tokenData);
 
         if (!tokenData.success) {
-          setError(`Invalid token: ${tokenData.error}`);
+          setError(`Invalid token: ${tokenData.error || 'Unknown error'}`);
           return;
         }
 
@@ -69,33 +82,49 @@ export default function DashboardPage() {
         console.log('✅ Token valid for clinic:', clinic_id, clinic_name);
 
         // Step 2: Fetch clinic data
+        console.log('🏥 Fetching clinic data...');
         const clinicResponse = await fetch(`/api/clinic?clinic_id=${clinic_id}`);
+        
+        if (!clinicResponse.ok) {
+          throw new Error(`Clinic fetch failed: ${clinicResponse.status} ${clinicResponse.statusText}`);
+        }
+
         const clinicData = await clinicResponse.json();
         console.log('🏥 Clinic data:', clinicData);
 
         if (clinicData.success) {
           setClinic(clinicData.data);
         } else {
-          setError(`Clinic not found: ${clinicData.error}`);
+          setError(`Clinic not found: ${clinicData.error || 'Unknown error'}`);
           return;
         }
 
         // Step 3: Fetch leads
+        console.log('📋 Fetching leads...');
         const leadsResponse = await fetch(`/api/leads?clinic_id=${clinic_id}`);
-        const leadsData = await leadsResponse.json();
-        console.log('📋 Leads data:', leadsData);
-
-        if (leadsData.success) {
-          setLeads(leadsData.data.leads || []);
+        
+        if (leadsResponse.ok) {
+          const leadsData = await leadsResponse.json();
+          console.log('📋 Leads data:', leadsData);
+          if (leadsData.success) {
+            setLeads(leadsData.data.leads || []);
+          }
+        } else {
+          console.warn('Failed to fetch leads:', leadsResponse.status);
         }
 
         // Step 4: Fetch stats
+        console.log('📊 Fetching stats...');
         const statsResponse = await fetch(`/api/stats?clinic_id=${clinic_id}`);
-        const statsData = await statsResponse.json();
-        console.log('📊 Stats data:', statsData);
-
-        if (statsData.success) {
-          setStats(statsData.data);
+        
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          console.log('📊 Stats data:', statsData);
+          if (statsData.success) {
+            setStats(statsData.data);
+          }
+        } else {
+          console.warn('Failed to fetch stats:', statsResponse.status);
         }
 
       } catch (err) {
@@ -106,14 +135,20 @@ export default function DashboardPage() {
       }
     };
 
-    if (token) {
-      fetchDashboardData();
-    } else {
-      console.log('❌ No token provided');
-      setError('No token provided in URL');
-      setLoading(false);
-    }
-  }, [token]);
+    fetchDashboardData();
+  }, [mounted, token]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-white mb-2">Initializing Dashboard</h2>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
