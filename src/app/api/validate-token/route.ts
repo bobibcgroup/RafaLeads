@@ -3,17 +3,18 @@ import { databaseService } from '@/lib/databaseService';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json();
-
-    if (!token) {
+    const body = await request.json();
+    
+    if (!body.token) {
       return NextResponse.json(
         { success: false, error: 'Token is required' },
         { status: 400 }
       );
     }
 
-    const validation = await databaseService.validateToken(token);
-
+    // Validate token using database service
+    const validation = await databaseService.validateToken(body.token);
+    
     if (!validation.valid) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -24,13 +25,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        valid: true,
         clinic_id: validation.clinic_id,
         clinic_name: validation.clinic_name,
+        valid: true,
       },
     });
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error('Error validating token:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

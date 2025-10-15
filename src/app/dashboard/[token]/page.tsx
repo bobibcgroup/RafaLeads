@@ -22,9 +22,10 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [isLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   // Real-time data hook
   const { isOnline, lastUpdate, isRefreshing, refresh } = useRealTimeData({
@@ -185,7 +186,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (isValidating) {
+  if (isValidating || isLoading) {
     return <LoadingSkeleton />;
   }
 
@@ -195,13 +196,21 @@ export default function DashboardPage() {
         <div className="glassmorphism-card p-8 rounded-xl text-center">
           <h1 className="text-2xl font-bold text-red-400 mb-4">Access Denied</h1>
           <p className="text-slate-300">{error}</p>
+          <p className="text-slate-400 text-sm mt-2">Token: {token}</p>
         </div>
       </div>
     );
   }
 
   if (!clinic) {
-    return <LoadingSkeleton />;
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="glassmorphism-card p-8 rounded-xl text-center">
+          <h1 className="text-2xl font-bold text-yellow-400 mb-4">Loading Clinic Data</h1>
+          <p className="text-slate-300">Please wait while we load your clinic information...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -212,7 +221,7 @@ export default function DashboardPage() {
       <div className="relative z-10">
         <DashboardHeader
           clinic={clinic}
-          lastRefresh={lastUpdate}
+          lastRefresh={lastRefresh || lastUpdate}
           onRefresh={handleRefresh}
           isLoading={isRefreshing}
           isOnline={isOnline}
